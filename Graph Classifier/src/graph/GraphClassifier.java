@@ -1,4 +1,6 @@
+package graph;
 import java.io.File;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Vector;
 
@@ -22,7 +24,7 @@ import weka.filters.unsupervised.instance.Resample;
  * @author mchristopher
  *
  */
-public class GraphClassifier implements Classifier {
+public class GraphClassifier implements Classifier, Serializable {
 	
 	/** Number of classifiers in the model */
 	int size;
@@ -56,6 +58,10 @@ public class GraphClassifier implements Classifier {
 	
 	/** Path representing the best set of weak classifiers */
 	PathClassifier path;
+	
+	public GraphClassifier(){
+		this(10, "weka.classifiers.functions.Logistic", null);
+	}
 	
 	/**
 	 * Creates a graph-based classifier with a size and node type specified by the
@@ -109,7 +115,7 @@ public class GraphClassifier implements Classifier {
 			}
 
 			Instances curdata = Filter.useFilter(trainData, sampler);
-//			System.out.println(curdata.get(i));
+			System.out.println(curdata.get(i));
 
 			c.buildModel(curdata);
 			c.evaluateOnData(trainData);
@@ -165,8 +171,8 @@ public class GraphClassifier implements Classifier {
 				pc.buildClassifier(trainData);
 				double acc = pc.evaluateOnData(trainData);
 				
-				System.out.println("Edge: " + ci + " -> " + cj + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - ci.getWeight())));
-				System.out.println("Edge: " + cj + " -> " + ci + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - cj.getWeight())));
+//				System.out.println("Edge: " + ci + " -> " + cj + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - ci.getWeight())));
+//				System.out.println("Edge: " + cj + " -> " + ci + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - cj.getWeight())));
 				
 				this.graph.setEdgeWeight(graph.getEdge(ci, cj), (1.0 - acc) - (1.0 - ci.getWeight()));
 				this.graph.setEdgeWeight(graph.getEdge(cj, ci), (1.0 - acc) - (1.0 - cj.getWeight()));
@@ -297,7 +303,8 @@ public class GraphClassifier implements Classifier {
 		}
 		
 		GraphClassifier gc = new GraphClassifier(n, "weka.classifiers.functions.Logistic", null);
-//		gc.setB();
+		gc.setProportion(0.5);
+		gc.setB(0.01);
 		try {
 			gc.buildClassifier(data);
 			

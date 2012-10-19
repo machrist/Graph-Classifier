@@ -1,3 +1,6 @@
+package graph;
+import java.io.Serializable;
+
 import weka.classifiers.Classifier;
 import weka.classifiers.evaluation.EvaluationUtils;
 import weka.classifiers.evaluation.Prediction;
@@ -10,7 +13,7 @@ import weka.core.Instances;
  * 
  * @author mchristopher
  */
-public class ClassifierNode {
+public class ClassifierNode implements Serializable{
 
 	/** Unique ID for this node */
 	String id;

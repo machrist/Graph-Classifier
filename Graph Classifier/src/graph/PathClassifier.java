@@ -1,3 +1,5 @@
+package graph;
+import java.io.Serializable;
 import java.util.List;
 
 import weka.classifiers.AbstractClassifier;
@@ -17,7 +19,7 @@ import weka.core.Instances;
  * @author mchristopher
  *
  */
-public class PathClassifier extends AbstractClassifier{
+public class PathClassifier extends AbstractClassifier implements Serializable{
 
 	/** Set of edges defining the path */
 	List<ClassifierEdge> edges;

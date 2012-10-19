@@ -1,3 +1,6 @@
+package graph;
+import java.io.Serializable;
+
 import org.jgrapht.graph.DefaultWeightedEdge;
 
 /**
@@ -7,7 +10,7 @@ import org.jgrapht.graph.DefaultWeightedEdge;
  * @author mchristopher
  *
  */
-public class ClassifierEdge extends DefaultWeightedEdge{
+public class ClassifierEdge extends DefaultWeightedEdge implements Serializable{
 	
 	public ClassifierNode getSourceNode(){
 		return (ClassifierNode) super.getSource();
