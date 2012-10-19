@@ -10,6 +10,7 @@ import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
 import weka.filters.Filter;
 import weka.filters.unsupervised.instance.Resample;
@@ -30,7 +31,7 @@ public class GraphClassifier implements Classifier {
 	double p = 0.10;
 	
 	/** Weight connecting each weak classifier to sink. Serves as threshold for graph search. */
-	double b = 0.01;
+	double b = 0.00;
 	
 	/** Fully qualified class name of the classifiers used to build ensemble model */
 	String classfierName;
@@ -120,7 +121,7 @@ public class GraphClassifier implements Classifier {
 			graph.setEdgeWeight(graph.getEdge(src, c), 1.0 - c.getWeight());
 
 			graph.addEdge(c, sink);
-			graph.setEdgeWeight(graph.getEdge(c, sink), 1.0 - c.getWeight());
+			graph.setEdgeWeight(graph.getEdge(c, sink), b);
 		}
 		
 		makeEdges();
@@ -149,7 +150,7 @@ public class GraphClassifier implements Classifier {
 			
 			ClassifierNode ci = vertices.get(i);
 			
-			for(int j = i; j < this.size; ++j){
+			for(int j = i + 1; j < this.size; ++j){
 				ClassifierNode cj = vertices.get(j);
 				
 				this.graph.addEdge(ci, cj);
@@ -164,7 +165,10 @@ public class GraphClassifier implements Classifier {
 				pc.buildClassifier(trainData);
 				double acc = pc.evaluateOnData(trainData);
 				
-				this.graph.setEdgeWeight(cicj, (1.0 - acc) - (1.0 - ci.getWeight()));
+				System.out.println("Edge: " + ci + " -> " + cj + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - ci.getWeight())));
+				System.out.println("Edge: " + cj + " -> " + ci + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - cj.getWeight())));
+				
+				this.graph.setEdgeWeight(graph.getEdge(ci, cj), (1.0 - acc) - (1.0 - ci.getWeight()));
 				this.graph.setEdgeWeight(graph.getEdge(cj, ci), (1.0 - acc) - (1.0 - cj.getWeight()));
 			}
 		}
@@ -239,7 +243,6 @@ public class GraphClassifier implements Classifier {
 	}
 	
 	//Getters/setters
-	
 	public void setClassifier(String c){
 		this.classfierName = c;
 	}
@@ -271,10 +274,21 @@ public class GraphClassifier implements Classifier {
 		int n = 10;
 		Instances data = null;
 		
-		CSVLoader csv = new CSVLoader();
 		try {
-			csv.setFile(new File(args[0]));
-			data = csv.getDataSet();
+			
+			//Check for csv file
+			if(args[0].endsWith("csv")){
+				CSVLoader csv = new CSVLoader();
+				csv.setFile(new File(args[0]));
+				data = csv.getDataSet();
+			}
+			//Not csv, assume arff
+			else{
+				ArffLoader arff = new ArffLoader();
+				arff.setFile(new File(args[0]));
+				data = arff.getDataSet();
+			}
+			
 			data.setClassIndex(data.numAttributes() - 1);
 			
 		} catch (Exception e) {
@@ -283,7 +297,7 @@ public class GraphClassifier implements Classifier {
 		}
 		
 		GraphClassifier gc = new GraphClassifier(n, "weka.classifiers.functions.Logistic", null);
-		gc.setB(0);
+//		gc.setB();
 		try {
 			gc.buildClassifier(data);
 			

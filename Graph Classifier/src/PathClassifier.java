@@ -129,11 +129,13 @@ public class PathClassifier extends AbstractClassifier{
 			
 			sdatum.setValue(0, s);
 			sdatum.setValue(1, c);
+			
+			sums.add(sdatum);
 		}
 		
 		
 		logistic = new Logistic();
-		logistic.buildClassifier(data);
+		logistic.buildClassifier(sums);
 		
 	}
 	
@@ -146,10 +148,10 @@ public class PathClassifier extends AbstractClassifier{
 		String s = "";
 		
 		for(int i = 0; i < this.edges.size(); ++i){
-			s += this.edges.get(i).getSourceNode().getID() + " -> " + this.edges.get(i).getTargetNode().getID();
+			s += "[" + this.edges.get(i).getSourceNode().getID() + " -> " + this.edges.get(i).getTargetNode().getID() + "] ";
 		}
 		
-		return s;
+		return s.trim();
 	}
 	
 	//Getters/Setters
