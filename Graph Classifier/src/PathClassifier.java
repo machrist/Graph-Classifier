@@ -22,22 +22,23 @@ public class PathClassifier extends AbstractClassifier{
 	/** Set of edges defining the path */
 	List<ClassifierEdge> edges;
 	
-//	/** Threshold value separting the two classes */
-//	double t = 0;
-//	
-//	/** Minimum value seen on training data */
-//	double min;
-//	
-//	/** Maximum value seen on training data */
-//	double max;
-	
 	/** Logistic regression fit to weighted path sum values */
 	Logistic logistic;
 	
+	/**
+	 * 
+	 * @param edges
+	 */
 	public PathClassifier(List<ClassifierEdge> edges){
 		this.setPath(edges);
 	}
 	
+	/**
+	 * 
+	 * @param datum
+	 * @return
+	 * @throws Exception
+	 */
 	protected double sumOverPath(Instance datum) throws Exception{
 		double sum = 0.0;
 		
@@ -64,8 +65,6 @@ public class PathClassifier extends AbstractClassifier{
 		d.setValue(1, datum.classValue());
 		
 		return logistic.classifyInstance(d);
-		
-//		return this.sumOverPath(datum) < t ? 0 : 1;
 	}
 	
 	/**
@@ -103,24 +102,6 @@ public class PathClassifier extends AbstractClassifier{
 		}
 
 		return right/total;
-		
-		
-//		double right = 0.0, total = 0.0;
-//		
-//		for(int i = 0; i < data.numInstances(); ++i){
-//			
-//			Instance datum = data.get(i);
-//			
-//			double cidx = this.classifyInstance(datum);
-//			double tidx = datum.classValue();
-//			
-//			if(cidx == tidx){
-//				right += 1.0;
-//			}
-//			total += 1.0;
-//		}
-//		
-//		return right/total;
 	}
 
 	/**
@@ -156,16 +137,23 @@ public class PathClassifier extends AbstractClassifier{
 		
 	}
 	
+	/**
+	 * 
+	 * @param edges
+	 */
+	public String toString(){
+		
+		String s = "";
+		
+		for(int i = 0; i < this.edges.size(); ++i){
+			s += this.edges.get(i).getSourceNode().getID() + " -> " + this.edges.get(i).getTargetNode().getID();
+		}
+		
+		return s;
+	}
+	
 	//Getters/Setters
 	public void setPath(List<ClassifierEdge> edges){
 		this.edges = edges;
 	}
-	
-//	public void setThreshold(double t){
-//		this.t = t;
-//	}
-//	
-//	public double getThreshold(){
-//		return this.t;
-//	}
 }

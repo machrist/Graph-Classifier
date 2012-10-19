@@ -108,7 +108,7 @@ public class GraphClassifier implements Classifier {
 			}
 
 			Instances curdata = Filter.useFilter(trainData, sampler);
-			System.out.println(curdata.get(i));
+//			System.out.println(curdata.get(i));
 
 			c.buildModel(curdata);
 			c.evaluateOnData(trainData);
@@ -138,6 +138,7 @@ public class GraphClassifier implements Classifier {
 		
 		Vector<ClassifierEdge> curEdge = new Vector<ClassifierEdge>(1);
 		curEdge.add(null);
+		curEdge.add(null);
 		
 		Vector<ClassifierNode> vertices = new Vector<ClassifierNode>();
 		vertices.addAll(this.graph.vertexSet());
@@ -155,7 +156,9 @@ public class GraphClassifier implements Classifier {
 				this.graph.addEdge(cj, ci);
 				
 				ClassifierEdge cicj = graph.getEdge(ci, cj);
+				ClassifierEdge cjsink = graph.getEdge(cj, sink);
 				curEdge.set(0, cicj);
+				curEdge.set(1, cjsink);
 				
 				PathClassifier pc = new PathClassifier(curEdge);
 				pc.buildClassifier(trainData);
@@ -176,6 +179,7 @@ public class GraphClassifier implements Classifier {
 	 */
 	protected void findShortestPath() throws Exception{
 		List<ClassifierEdge> edges = BellmanFordShortestPath.findPathBetween(this.graph, this.src, this.sink);
+		edges.remove(0);
 		this.path = new PathClassifier(edges);
 		this.path.buildClassifier(trainData);
 	}
@@ -279,10 +283,12 @@ public class GraphClassifier implements Classifier {
 		}
 		
 		GraphClassifier gc = new GraphClassifier(n, "weka.classifiers.functions.Logistic", null);
+		gc.setB(0);
 		try {
 			gc.buildClassifier(data);
 			
 			System.out.println(gc.graph);
+			System.out.println(gc.path);
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
