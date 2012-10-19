@@ -1,8 +1,9 @@
 import java.io.File;
-import java.util.Random;
+import java.util.List;
+import java.util.Vector;
 
+import org.jgrapht.alg.BellmanFordShortestPath;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
-import org.jgrapht.graph.DefaultWeightedEdge;
 
 import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
@@ -14,6 +15,8 @@ import weka.filters.Filter;
 import weka.filters.unsupervised.instance.Resample;
 
 /**
+ * Graph-based ensemble classifier. Uses shortest-path graph search techniques to search through
+ * a set of weak classifiers to determine a stronger ensemble classification model. 
  * 
  * @author mchristopher
  *
@@ -26,18 +29,46 @@ public class GraphClassifier implements Classifier {
 	/** Value in (0,1] indicating size of data set used for each weak classifier */
 	double p = 0.10;
 	
+	/** Weight connecting each weak classifier to sink. Serves as threshold for graph search. */
+	double b = 0.01;
+	
 	/** Fully qualified class name of the classifiers used to build ensemble model */
 	String classfierName;
 	
 	/** Arguments used to create classifiers. Passed to weka method Classifier.forName() */
 	String classArgs[];
 	
+	/** Capabilities of the classifier, same as for weak classifier */
+	Capabilities caps;
+	
 	/** Training data set */
 	Instances trainData;
 	
 	/** Set of weak classifiers to search through*/
-	DefaultDirectedWeightedGraph<ClassifierNode, DefaultWeightedEdge> graph;
+	DefaultDirectedWeightedGraph<ClassifierNode, ClassifierEdge> graph;
 	
+	/** Starting node in graph */
+	ClassifierNode src;
+	
+	/** Ending node in graph */
+	ClassifierNode sink;
+	
+	/** Path representing the best set of weak classifiers */
+	PathClassifier path;
+	
+	/**
+	 * Creates a graph-based classifier with a size and node type specified by the
+	 * input. The ensemble graph classifier will be determined by searching through
+	 * n weaker classifiers each constructed using the Weka method 
+	 * Classifier.forName(classifier, args). 
+	 * 
+	 * @param n
+	 *   Number of weak classifiers to create/search through
+	 * @param classifier
+	 *    Fully qualified name of classifier type to use for weak classifiers
+	 * @param args
+	 *    Arguments to 
+	 */
 	public GraphClassifier(int n, String classifier, String args[]){
 		this.size = n;
 		this.classfierName = classifier;
@@ -52,96 +83,155 @@ public class GraphClassifier implements Classifier {
 	 */
 	public void buildClassifier(Instances data) throws Exception{
 		
+		this.caps = null;
 		this.trainData = data;
-		int n = trainData.numInstances();
 		Resample sampler = new Resample();
 		sampler.setInputFormat(trainData);
 		sampler.setSampleSizePercent(100.0*p);
 		
-		graph = new DefaultDirectedWeightedGraph<ClassifierNode, DefaultWeightedEdge>(DefaultWeightedEdge.class);
+		graph = new DefaultDirectedWeightedGraph<ClassifierNode,ClassifierEdge>(ClassifierEdge.class);
 		
-		ClassifierNode src = new ClassifierNode("s");
-		ClassifierNode sink = new ClassifierNode("t");
+		src = new ClassifierNode("s");
+		sink = new ClassifierNode("t");
 		
 		graph.addVertex(src);
 		graph.addVertex(sink);
 		
 		for(int i = 0; i < this.size; ++i){
+
+			//Build weak classifier
+			ClassifierNode c = new ClassifierNode(this.getClassifierName(i));
+			c.setClassifier(AbstractClassifier.forName(this.classfierName, this.classArgs));
+
+			if(this.caps == null){
+				this.caps = c.getClassifier().getCapabilities();
+			}
+
+			Instances curdata = Filter.useFilter(trainData, sampler);
+			System.out.println(curdata.get(i));
+
+			c.buildModel(curdata);
+			c.evaluateOnData(trainData);
+
+			//Add to graph representation
+			graph.addVertex(c);
+
+			graph.addEdge(src, c);
+			graph.setEdgeWeight(graph.getEdge(src, c), 1.0 - c.getWeight());
+
+			graph.addEdge(c, sink);
+			graph.setEdgeWeight(graph.getEdge(c, sink), 1.0 - c.getWeight());
+		}
+		
+		makeEdges();
+		findShortestPath();
+	}
+	
+	/**
+	 * Creates edges connecting all classifier nodes to each other. The weights assigned
+	 * to each edge are determined by the marginal increase in error associated with
+	 * combining the two classifiers connected by the edge.
+	 * 
+	 * @throws Exception 
+	 */
+	protected void makeEdges() throws Exception{
+		
+		Vector<ClassifierEdge> curEdge = new Vector<ClassifierEdge>(1);
+		curEdge.add(null);
+		
+		Vector<ClassifierNode> vertices = new Vector<ClassifierNode>();
+		vertices.addAll(this.graph.vertexSet());
+		vertices.remove(this.src);
+		vertices.remove(this.sink);
+		
+		for(int i = 0; i < this.size; ++i){
 			
-			try {
+			ClassifierNode ci = vertices.get(i);
+			
+			for(int j = i; j < this.size; ++j){
+				ClassifierNode cj = vertices.get(j);
 				
-				//Build weak classifier
-				ClassifierNode c = new ClassifierNode(String.format("%02d", i));
-				c.setClassifier(AbstractClassifier.forName(this.classfierName, this.classArgs));
+				this.graph.addEdge(ci, cj);
+				this.graph.addEdge(cj, ci);
 				
-				Instances curdata = Filter.useFilter(trainData, sampler);
-				System.out.println(curdata.get(i));
+				ClassifierEdge cicj = graph.getEdge(ci, cj);
+				curEdge.set(0, cicj);
 				
-				c.buildModel(curdata);
-				c.evaluateOnData(trainData);
+				PathClassifier pc = new PathClassifier(curEdge);
+				pc.buildClassifier(trainData);
+				double acc = pc.evaluateOnData(trainData);
 				
-				//Add to graph representation
-				graph.addVertex(c);
-				
-				graph.addEdge(src, c);
-				graph.setEdgeWeight(graph.getEdge(src, c), 1.0 - c.getWeight());
-				
-				graph.addEdge(c, sink);
-				graph.setEdgeWeight(graph.getEdge(c, sink), 1.0 - c.getWeight());
-				
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.out.println("GraphClassifier.buildClassifier: Couldn't make classifier " + this.classfierName);
+				this.graph.setEdgeWeight(cicj, (1.0 - acc) - (1.0 - ci.getWeight()));
+				this.graph.setEdgeWeight(graph.getEdge(cj, ci), (1.0 - acc) - (1.0 - cj.getWeight()));
 			}
 		}
 		
 	}
 	
-	protected void findPath(){
-		
+	/**
+	 * Determines final classification model using shortest path search through the graph 
+	 * representation of the ensemble of weak classifiers.
+	 * 
+	 * @throws Exception 
+	 */
+	protected void findShortestPath() throws Exception{
+		List<ClassifierEdge> edges = BellmanFordShortestPath.findPathBetween(this.graph, this.src, this.sink);
+		this.path = new PathClassifier(edges);
+		this.path.buildClassifier(trainData);
 	}
 	
 	/**
+	 * Get string name of classifer specified by an index.
 	 * 
-	 * @param data
-	 * @param n
-	 * @param r
-	 * @return
+	 * @param i
+	 *   Index specifying the classifier
+	 * @return 
 	 */
-	Instances sampleWithReplacement(Instances data, int n, Random r){
-		
-		Instances sample = new Instances(data); 
-		
-		if(r == null){
-			r = new Random();
-		}
-		
-		for(int i = 0; i < n; ++i){
-			int idx = r.nextInt(data.numInstances());
-			sample.add(data.get(idx));
-		}
-		
-		return sample;
+	public String getClassifierName(int i){
+		return String.format("%03d", i);
+	}
+
+	
+	/**
+	 * Classifies a single data point.
+	 * 
+	 * @param instance
+	 *   Data point for which to predict class
+	 * @return 
+	 *   Index of predicted class value
+	 * @throws
+	 */
+	public double classifyInstance(Instance instance) throws Exception {
+		return this.path.classifyInstance(instance);
 	}
 	
-	@Override
-	public double classifyInstance(Instance instance) throws Exception {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-
-	@Override
+	/**
+	 * Gets probabilities of data point belonging to each class.
+	 * 
+	 * @param instance
+	 *   Data point for which to predict class probabilities
+	 * @return
+	 *   Array of class probability values, in order of class values provided in training data
+	 * @throws
+	 */
 	public double[] distributionForInstance(Instance instance) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+		return this.path.distributionForInstance(instance);
 	}
-
-
-	@Override
+	
+	/**
+	 * Returns the (weka) capabilities of this classifier. Identical to capabilities of 
+	 * weak classifiers.
+	 */
 	public Capabilities getCapabilities() {
-		// TODO Auto-generated method stub
-		return null;
+		Capabilities caps = null;
+		try{
+			caps = AbstractClassifier.forName(this.classfierName, this.classArgs).getCapabilities();
+		}
+		catch(Exception e){
+			caps = null;
+		}
+		
+		return caps;
 	}
 	
 	//Getters/setters
@@ -158,6 +248,20 @@ public class GraphClassifier implements Classifier {
 		return this.p;
 	}
 	
+	public void setB(double b){
+		this.b = b;
+	}
+	
+	public double getB(){
+		return this.b;
+	}
+	
+	/**
+	 * Testing method.
+	 * 
+	 * @param args
+	 *   args[0] should be path to data file (csv or arff) on which to test.
+	 */
 	public static void main(String args[]){
 		
 		int n = 10;

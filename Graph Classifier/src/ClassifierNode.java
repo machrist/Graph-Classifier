@@ -2,6 +2,7 @@ import weka.classifiers.Classifier;
 import weka.classifiers.evaluation.EvaluationUtils;
 import weka.classifiers.evaluation.Prediction;
 import weka.core.FastVector;
+import weka.core.Instance;
 import weka.core.Instances;
 
 /**
@@ -47,6 +48,32 @@ public class ClassifierNode {
 			result = false;
 		}
 		return result;
+	}
+	
+	/**
+	 * Applies the classifier of this node to a data point.
+	 * 
+	 * @param datum
+	 *   The data point to classify
+	 * @return
+	 *   Array indicating the estimated probabilities of the data point belonging to each class
+	 * @throws Exception
+	 */
+	public double[] distributionForInstance(Instance datum) throws Exception{
+		return this.classifier.distributionForInstance(datum);
+	}
+	
+	/**
+	 * Applies the classifier of this node to a data point.
+	 * 
+	 * @param datum
+	 *   The data point to classify
+	 * @return
+	 *   Index of the estimated class of the data point 
+	 * @throws Exception
+	 */
+	public double classifyInstance(Instance datum) throws Exception{
+		return this.classifier.classifyInstance(datum);
 	}
 	
 	/**
