@@ -269,6 +269,54 @@ public class GraphClassifier implements Classifier, Serializable {
 		return this.b;
 	}
 	
+	
+	
+	/**
+	 * @return the classfierName
+	 */
+	public String getClassfierName() {
+		return classfierName;
+	}
+
+	/**
+	 * @param classfierName the classfierName to set
+	 */
+	public void setClassfierName(String classfierName) {
+		this.classfierName = classfierName;
+	}
+
+	/**
+	 * @return the classArgs
+	 */
+	public String getClassArgs() {
+		
+		String args = "";
+		
+		if(classArgs != null) {
+			for(int i = 0; i < classArgs.length; i++) {
+				
+				if(i > 0)
+					args += " ";
+					
+				args += classArgs[i];
+				
+			}
+		}
+		
+		return "";
+	}
+
+	/**
+	 * @param classArgs the classArgs to set
+	 */
+	public void setClassArgs(String s) {
+		if(s.length() > 0) {
+			classArgs = s.split(" ");
+		} else {
+			classArgs = null;
+		}
+	}
+
 	/**
 	 * Testing method.
 	 * 
