@@ -1,6 +1,7 @@
 package graph;
 import java.io.File;
 import java.io.Serializable;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Vector;
 
@@ -12,6 +13,7 @@ import weka.classifiers.Classifier;
 import weka.core.Capabilities;
 import weka.core.Instance;
 import weka.core.Instances;
+import weka.core.OptionHandler;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
 import weka.filters.Filter;
@@ -24,7 +26,7 @@ import weka.filters.unsupervised.instance.Resample;
  * @author mchristopher
  *
  */
-public class GraphClassifier implements Classifier, Serializable {
+public class GraphClassifier implements Classifier, Serializable, OptionHandler {
 	
 	/** Number of classifiers in the model */
 	int size;
@@ -58,6 +60,8 @@ public class GraphClassifier implements Classifier, Serializable {
 	
 	/** Path representing the best set of weak classifiers */
 	PathClassifier path;
+	
+	String[] args = new String[0];
 	
 	public GraphClassifier(){
 		this(10, "weka.classifiers.functions.Logistic", null);
@@ -364,6 +368,21 @@ public class GraphClassifier implements Classifier, Serializable {
 			e.printStackTrace();
 		}
 		
+	}
+
+	public Enumeration listOptions() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public void setOptions(String[] options) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public String[] getOptions() {
+		// TODO Auto-generated method stub
+		return args;
 	}
 
 }
