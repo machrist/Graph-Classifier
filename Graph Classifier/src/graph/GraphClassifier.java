@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Random;
 import java.util.Vector;
 
 import org.jgrapht.alg.BellmanFordShortestPath;
@@ -96,9 +97,8 @@ public class GraphClassifier implements Classifier, Serializable, OptionHandler 
 		
 		this.caps = null;
 		this.trainData = data;
-		Resample sampler = new Resample();
-		sampler.setInputFormat(trainData);
-		sampler.setSampleSizePercent(100.0*p);
+		
+		Random rand = new Random();
 		
 		graph = new DefaultDirectedWeightedGraph<ClassifierNode,ClassifierEdge>(ClassifierEdge.class);
 		
@@ -117,7 +117,12 @@ public class GraphClassifier implements Classifier, Serializable, OptionHandler 
 			if(this.caps == null){
 				this.caps = c.getClassifier().getCapabilities();
 			}
-
+			
+			Resample sampler = new Resample();
+			sampler.setInputFormat(trainData);
+			sampler.setSampleSizePercent(100.0*p);
+			sampler.setRandomSeed(rand.nextInt());
+			
 			Instances curdata = Filter.useFilter(trainData, sampler);
 			System.out.println(curdata.get(i));
 
@@ -175,8 +180,8 @@ public class GraphClassifier implements Classifier, Serializable, OptionHandler 
 				pc.buildClassifier(trainData);
 				double acc = pc.evaluateOnData(trainData);
 				
-//				System.out.println("Edge: " + ci + " -> " + cj + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - ci.getWeight())));
-//				System.out.println("Edge: " + cj + " -> " + ci + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - cj.getWeight())));
+				System.out.println("Edge: " + ci + " -> " + cj + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - ci.getWeight())));
+				System.out.println("Edge: " + cj + " -> " + ci + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - cj.getWeight())));
 				
 				this.graph.setEdgeWeight(graph.getEdge(ci, cj), (1.0 - acc) - (1.0 - ci.getWeight()));
 				this.graph.setEdgeWeight(graph.getEdge(cj, ci), (1.0 - acc) - (1.0 - cj.getWeight()));
