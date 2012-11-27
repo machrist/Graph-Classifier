@@ -199,6 +199,7 @@ public class GraphClassifier implements Classifier, Serializable, OptionHandler 
 	protected void findShortestPath() throws Exception{
 		List<ClassifierEdge> edges = BellmanFordShortestPath.findPathBetween(this.graph, this.src, this.sink);
 		edges.remove(0);
+		edges.remove(edges.size()-1);
 		this.path = new PathClassifier(edges);
 		this.path.buildClassifier(trainData);
 	}

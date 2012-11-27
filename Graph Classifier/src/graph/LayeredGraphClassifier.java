@@ -1,12 +1,14 @@
 package graph;
 
 import java.io.File;
+import java.util.List;
 import java.util.Random;
 import java.util.Vector;
 
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 
 import weka.classifiers.AbstractClassifier;
+import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.CSVLoader;
@@ -155,7 +157,7 @@ public class LayeredGraphClassifier extends GraphClassifier {
 					ClassifierEdge cicj = graph.getEdge(ci, cj);
 					curEdge.set(0, cicj);
 					
-					PathClassifier pc = new PathClassifier(curEdge);
+					LayeredPathClassifier pc = new LayeredPathClassifier(curEdge);
 					pc.buildClassifier(trainData);
 					double acc = pc.evaluateOnData(trainData);
 					
@@ -250,6 +252,32 @@ public class LayeredGraphClassifier extends GraphClassifier {
 			e.printStackTrace();
 		}
 		
+	}
+	
+	
+	private class LayeredPathClassifier extends PathClassifier {
+
+		public LayeredPathClassifier(List<ClassifierEdge> edges) {
+			super(edges);
+			// TODO Auto-generated constructor stub
+		}
+		
+		protected double sumOverPath(Instance datum) throws Exception{
+			double sum = 0.0;
+			
+			for(int i = 0; i < this.edges.size(); ++i){
+				ClassifierNode ci = this.edges.get(i).getSourceNode();
+				ClassifierNode cj = this.edges.get(i).getTargetNode();
+				if(!ci.getID().equalsIgnoreCase("s"))
+					sum += ci.getWeight()*ci.distributionForInstance(datum)[0];
+				if(!ci.getID().equalsIgnoreCase("t"))
+					sum += cj.getWeight()*cj.distributionForInstance(datum)[0];
+				
+			}
+			
+			return sum;
+		}
+	
 	}
 	
 
