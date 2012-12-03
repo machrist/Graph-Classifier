@@ -20,4 +20,8 @@ public class ClassifierEdge extends DefaultWeightedEdge implements Serializable{
 		return (ClassifierNode) super.getTarget();
 	}
 	
+	public String toString(){
+		return this.getSourceNode().getID() + "--(" + this.getWeight() + ")->" + this.getTargetNode().getID();
+	}
+	
 }

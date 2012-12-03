@@ -25,7 +25,7 @@ public class LayeredGraphClassifier extends GraphClassifier {
 	private int numClassifiersPerLayer = 2;
 	
 	public LayeredGraphClassifier(){
-		this(5,5, "weka.classifiers.functions.Logistic", null);
+		this(10, 10, "weka.classifiers.functions.Logistic", null);
 	}
 	
 	/**
@@ -46,7 +46,7 @@ public class LayeredGraphClassifier extends GraphClassifier {
 		this.numClassifiersPerLayer = numClassifiersPerLayer;
 		this.classfierName = classifier;
 		this.classArgs = args;
-		System.out.println("NumLayers: "+numLayers+" numClassifiersPerLayer: "+numClassifiersPerLayer);
+//		System.out.println("NumLayers: "+numLayers+" numClassifiersPerLayer: "+numClassifiersPerLayer);
 	}
 	
 	/**
@@ -70,9 +70,8 @@ public class LayeredGraphClassifier extends GraphClassifier {
 		graph.addVertex(src);
 		graph.addVertex(sink);
 		
-		System.out.println("NumLayers: "+numLayers+" numClassifiersPerLayer: "+numClassifiersPerLayer);
-		
-		System.out.println("Size of original dataset: "+trainData.size());
+//		System.out.println("NumLayers: "+numLayers+" numClassifiersPerLayer: "+numClassifiersPerLayer);
+//		System.out.println("Size of original dataset: "+trainData.size());
 		
 		for(int i = 0; i < this.numClassifiersPerLayer*this.numLayers; ++i){
 
@@ -90,15 +89,13 @@ public class LayeredGraphClassifier extends GraphClassifier {
 			sampler.setRandomSeed(rand.nextInt());
 			
 			Instances curdata = Filter.useFilter(trainData, sampler);
-			System.out.println(curdata.get(0));
-			
+//			System.out.println(curdata.get(0));
 
-			System.out.println("First instance: "+curdata.size());
+//			System.out.println("First instance: " + curdata.size());
 			
 			c.buildModel(curdata);
 			c.evaluateOnData(trainData);
-			System.out.println(c.getWeight());
-			
+//			System.out.println(c.getWeight());
 			
 			//Add to graph representation
 			graph.addVertex(c);
@@ -112,7 +109,7 @@ public class LayeredGraphClassifier extends GraphClassifier {
 			//if it's in the last layer
 			if( i/numClassifiersPerLayer == numLayers - 1 ) {
 				graph.addEdge(c, sink);
-				graph.setEdgeWeight(graph.getEdge(c, sink), b);
+				graph.setEdgeWeight(graph.getEdge(c, sink), 0.0);
 			}
 		}
 		
@@ -161,7 +158,7 @@ public class LayeredGraphClassifier extends GraphClassifier {
 					pc.buildClassifier(trainData);
 					double acc = pc.evaluateOnData(trainData);
 					
-					System.out.println("Edge: " + ci + " -> " + cj + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - ci.getWeight())));
+//					System.out.println("Edge: " + ci + " -> " + cj + ": acc = " + acc + ", w = " + ((1.0 - acc) - (1.0 - ci.getWeight())));
 					
 					this.graph.setEdgeWeight(graph.getEdge(ci, cj), (1.0 - acc) - (1.0 - ci.getWeight()));
 					
@@ -204,6 +201,28 @@ public class LayeredGraphClassifier extends GraphClassifier {
 		
 	}
 	
+	public String toString(){
+		
+		String str = "";
+		
+		for(int i = 0; i < this.numClassifiersPerLayer; ++i){
+			for(int j = 0; j < this.numLayers; ++j){
+				
+				ClassifierNode n = new ClassifierNode(this.getClassifierName(j*this.numClassifiersPerLayer + i));
+				if(this.path.contains(n)){
+					str += " **" + n.getID() + "** ";
+				}
+				else{
+					str += "   " + n.getID() + "   ";
+				}
+				
+			}
+			str += "\n";
+		}
+		
+		return str;
+	}
+	
 	
 	/**
 	 * Testing method.
@@ -238,14 +257,15 @@ public class LayeredGraphClassifier extends GraphClassifier {
 			System.exit(-1);
 		}
 		
-		LayeredGraphClassifier gc = new LayeredGraphClassifier(3,2, "weka.classifiers.functions.Logistic", null);
-		gc.setProportion(0.5);
-		gc.setB(0.01);
+		LayeredGraphClassifier gc = new LayeredGraphClassifier(3, 2, "weka.classifiers.functions.Logistic", null);
+//		gc.setProportion(0.5);
+//		gc.setB(0.01);
 		try {
 			gc.buildClassifier(data);
 			
 			System.out.println(gc.graph);
 			System.out.println(gc.path);
+			System.out.println(gc);
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -259,20 +279,27 @@ public class LayeredGraphClassifier extends GraphClassifier {
 
 		public LayeredPathClassifier(List<ClassifierEdge> edges) {
 			super(edges);
-			// TODO Auto-generated constructor stub
 		}
 		
 		protected double sumOverPath(Instance datum) throws Exception{
 			double sum = 0.0;
 			
-			for(int i = 0; i < this.edges.size(); ++i){
+			for(int i = 0; i < this.edges.size(); i += 2){
 				ClassifierNode ci = this.edges.get(i).getSourceNode();
 				ClassifierNode cj = this.edges.get(i).getTargetNode();
-				if(!ci.getID().equalsIgnoreCase("s"))
-					sum += ci.getWeight()*ci.distributionForInstance(datum)[0];
-				if(!ci.getID().equalsIgnoreCase("t"))
-					sum += cj.getWeight()*cj.distributionForInstance(datum)[0];
 				
+				if(!(ci.getID().equalsIgnoreCase("s") || ci.getID().equalsIgnoreCase("t"))){
+					sum += ci.getWeight()*ci.distributionForInstance(datum)[0];
+				}
+				
+				if(!(cj.getID().equalsIgnoreCase("s") || cj.getID().equalsIgnoreCase("t"))){
+					sum += cj.getWeight()*cj.distributionForInstance(datum)[0];
+				}
+				
+//				if(!ci.getID().equalsIgnoreCase("s"))
+//					sum += ci.getWeight()*ci.distributionForInstance(datum)[0];
+//				if(!ci.getID().equalsIgnoreCase("t"))
+//					sum += cj.getWeight()*cj.distributionForInstance(datum)[0];
 			}
 			
 			return sum;

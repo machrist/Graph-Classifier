@@ -200,6 +200,7 @@ public class GraphClassifier implements Classifier, Serializable, OptionHandler 
 		List<ClassifierEdge> edges = BellmanFordShortestPath.findPathBetween(this.graph, this.src, this.sink);
 		edges.remove(0);
 		edges.remove(edges.size()-1);
+		System.out.println(edges);
 		this.path = new PathClassifier(edges);
 		this.path.buildClassifier(trainData);
 	}
@@ -360,9 +361,9 @@ public class GraphClassifier implements Classifier, Serializable, OptionHandler 
 			System.exit(-1);
 		}
 		
-		GraphClassifier gc = new GraphClassifier(n, "weka.classifiers.functions.Logistic", null);
-		gc.setProportion(0.5);
-		gc.setB(0.01);
+		LayeredGraphClassifier gc = new LayeredGraphClassifier(2, 3, "weka.classifiers.functions.Logistic", null);
+//		gc.setProportion(0.5);
+//		gc.setB(0.01);
 		try {
 			gc.buildClassifier(data);
 			

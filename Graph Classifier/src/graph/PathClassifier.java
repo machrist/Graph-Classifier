@@ -142,6 +142,23 @@ public class PathClassifier extends AbstractClassifier implements Serializable{
 	}
 	
 	/**
+	 * Determing if this path contains the given node.
+	 * 
+	 * @return
+	 *   True if this path contains the node, false otherwise
+	 */
+	public boolean contains(ClassifierNode n){
+		
+		for(int i = 0; i < this.edges.size(); ++i){
+			if(this.edges.get(i).getSourceNode().equals(n) || this.edges.get(i).getTargetNode().equals(n)){
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * 
 	 * @param edges
 	 */
